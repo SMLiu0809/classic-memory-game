@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>武俠群雄：記憶翻牌考驗 (護眼旗艦版)</title>
+    <style>
+        :root {
+            --primary-bg: #1e2229;
+            --text-color: #f0f0f0;
+            --accent: #d9534f;
+            --card-bg: #2a313c;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            font-family: "Microsoft JhengHei", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3 { 
+            text-align: center; 
+        }
+        
+        #game-container {
+            width: 95%;
+            max-width: 980px;
+            margin: 20px auto;
+            padding: 25px;
+            background: var(--card-bg);
+            border-radius: 18px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        }
+        
+        .screen { 
+            display: none; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .screen.active { 
+            display: flex; 
+        }
+        
+        .designer-text {
+            color: #f0ad4e;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-top: 15px;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .user-form {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+        }
+        .form-group label {
+            font-size: 1.1em;
+            color: #f0ad4e;
+            font-weight: bold;
+        }
+        .form-tip {
+            font-size: 0.85em;
+            color: #aaa;
+            margin-bottom: 2px;
+        }
+        .form-group input, .form-group select {
+            padding: 12px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 1px solid #4a5568;
+            background: #1e2229;
+            color: var(--text-color);
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 15px;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 10px rgba(217, 83, 79, 0.4);
+        }
+        button:hover {
+            background-color: #c9302c;
+            transform: scale(1.05);
+        }
+
+        #info-panel {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            width: 100%;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #4a5568;
+            padding-bottom: 12px;
+            font-weight: bold;
+        }
+
+        #preview-notice {
+            color: #f0ad4e;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            min-height: 1.5em;
+            text-align: center;
+        }
+
+        .board {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            perspective: 1000px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            width: 86px;
+            height: 112px;
+            position: relative;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+        }
+        @media (max-width: 600px) {
+            .card { 
+                width: 68px; 
+                height: 92px; 
+                gap: 6px;
+            }
+        }
+
+        .card.flipped { 
+            transform: rotateY(180deg); 
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .card-front {
+            background: #fdfbf7;
+            color: #2c3e50;
+            transform: rotateY(180deg);
+            font-size: 19px;
+            font-weight: bold;
+            text-align: center;
+            padding: 4px;
+            word-break: break-all;
+            line-height: 1.25;
+            border: 2px solid #bdc3c7;
+        }
+        @media (max-width: 600px) {
+            .card-front { 
+                font-size: 14px; 
+            }
+        }
+
+        .bg-lv0 { background: #4a5568; }
+        .bg-lv1 { background: linear-gradient(135deg, #718096, #4a5568); }
+        .bg-lv2 { background: linear-gradient(135deg, #319795, #285e61); }
+        .bg-lv3 { background: linear-gradient(135deg, #2b6cb0, #1a365d); }
+        .bg-lv4 { background: linear-gradient(135deg, #44337a, #201a30); }
+        .bg-lv5 { background: linear-gradient(135deg, #744210, #3c1e05); }
+        .bg-lv6 { background: linear-gradient(135deg, #9b2c2c, #4a1515); }
+        .bg-lv7 { background: linear-gradient(135deg, #975a16, #4a2805); }
+        .bg-lv8 { background: linear-gradient(135deg, #276749, #133824); }
+        .bg-lv9 { background: linear-gradient(135deg, #553c9a, #23173d); }
+        .bg-lv10 { 
+            background: linear-gradient(135deg, #744210, #2c1a05); 
+            border: 2px solid #d69e2e; 
+            box-shadow: 0 0 10px rgba(214, 158, 46, 0.4);
+        }
+
+        .result-stats {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+            border: 1px solid rgba(240, 173, 78, 0.3);
+        }
+        .result-stats p { 
+            margin: 12px 0; 
+            font-size: 1.3em; 
+        }
+        .rank-title { 
+            font-size: 2.8em; 
+            color: #f0ad4e; 
+            margin-bottom: 8px; 
+            text-shadow: 0 0 10px rgba(240, 173, 78, 0.6); 
+            text-align: center;
+            font-weight: bold;
+        }
+        .rank-desc { 
+            font-size: 1.2em; 
+            color: #ddd; 
+            font-style: italic; 
+            margin-bottom: 20px; 
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .certificates-container {
+            width: 100%;
+            max-width: 650px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .certificates-container h3 {
+            color: #f0ad4e;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        .cert-item {
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .cert-item.matched {
+            background: rgba(240, 173, 78, 0.2);
+            border: 2px solid #f0ad4e;
+        }
+        .cert-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #f0ad4e;
+        }
+        .cert-desc {
+            font-size: 0.95em;
+            color: #ccc;
+        }
+
+        .level-pass-box {
+            background: rgba(0, 128, 0, 0.2);
+            border: 2px solid #48bb78;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .level-fail-box {
+            background: rgba(229, 62, 62, 0.2);
+            border: 2px solid #e53e3e;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- 第一頁：玩家基本資料輸入與介紹 -->
+    <div id="intro-screen" class="screen active">
+        <h1>武俠群雄：記憶翻牌考驗</h1>
+        <p>這是一款專為全齡（含高齡長者）設計的記憶促進遊戲。請自定江湖名號，挑戰十關護眼記憶試煉！</p>
+        
+        <div class="user-form">
+            <div class="form-group">
+                <label for="player-name">您的江湖名號：</label>
+                <div class="form-tip">請輸入您專屬的稱號（將印製於修練證書上）</div>
+                <input type="text" id="player-name" placeholder="例如：風清揚、獨孤求敗" value="江湖少俠">
+            </div>
+            <div class="form-group">
+                <label for="player-gender">您的性別：</label>
+                <select id="player-gender" onchange="updateAgeOptions()">
+                    <option value="男">男</option>
+                    <option value="女">女</option>
+                    <option value="其他 / 不透露">其他 / 不透露 (隨機混搭)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="player-age-group">年齡層 (文學代表身分)：</label>
+                <select id="player-age-group">
+                    <!-- 動態載入選項 -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="start-level-select">選擇起始關卡：</label>
+                <select id="start-level-select">
+                    <!-- 動態載入十關選項 -->
+                </select>
+            </div>
+        </div>
+
+        <p class="designer-text">高師劉世閔設計</p>
+        <button onclick="startGame()">開始考驗</button>
+    </div>
+
+    <!-- 遊戲進行區 -->
+    <div id="game-screen" class="screen">
+        <div id="info-panel">
+            <span id="level-display">關卡: 0 / 10</span>
+            <span id="theme-display">主題: </span>
+            <span id="player-info-display">少俠: </span>
+            <span id="flips-display">翻牌次數: 0</span>
+            <span id="time-display">時間: 0s</span>
+        </div>
+        <div id="preview-notice"></div>
+        <div id="board" class="board"></div>
+        
+        <div id="level-result-box" style="display:none;"></div>
+    </div>
+
+    <!-- 最後一頁：結算與獎勵證書 -->
+    <div id="result-screen" class="screen">
+        <h1>🎉 恭喜通關！武學證書頒發 🎉</h1>
+        <div class="result-stats">
+            <p>挑戰者名號：<span id="final-player-name" style="color: #f0ad4e; font-weight: bold;"></span></p>
+            <p>挑戰者身分：<span id="final-player-info"></span></p>
+            <p>總耗時：<span id="final-time"></span> 秒</p>
+            <p>總翻牌次數：<span id="final-flips"></span> 次</p>
+        </div>
+        
+        <h2>你的武學境界證書評定為：</h2>
+        <div id="rank-title" class="rank-title"></div>
+        <div id="rank-desc" class="rank-desc"></div>
+
+        <div class="certificates-container">
+            <h3>📜 十級武學境界證書總覽</h3>
+            <div id="certificates-list"></div>
+        </div>
+        
+        <p class="designer-text">高師劉世閔設計</p>
+        <button onclick="location.reload()">再戰江湖 (重新開始)</button>
+    </div>
+
+</div>
+
+<script>
+    const levelsData = [
+        { level: 0, name: "三國蜀漢 (示範)", pairs: 4, chars: ["劉備", "關羽", "張飛", "諸葛亮", "趙雲", "馬超", "黃忠", "魏延"] },
+        { level: 1, name: "紅樓夢", pairs: 6, chars: ["賈寶玉", "林黛玉", "薛寶釵", "王熙鳳", "史湘雲", "賈探春", "妙玉", "迎春", "惜春", "賈母", "秦可卿"] },
+        { level: 2, name: "水滸傳", pairs: 8, chars: ["宋江", "盧俊義", "吳用", "公孫勝", "關勝", "林沖", "秦明", "呼延灼", "花榮", "柴進", "魯智深", "武松", "李逵", "燕青"] },
+        { level: 3, name: "西遊記", pairs: 10, chars: ["孫悟空", "唐僧", "豬八戒", "沙悟淨", "白龍馬", "觀音菩薩", "如來佛祖", "玉皇大帝", "太上老君", "哪吒", "二郎神", "牛魔王", "鐵扇公主", "紅孩兒", "白骨精"] },
+        { level: 4, name: "封神演義", pairs: 12, chars: ["姜子牙", "姬發", "紂王", "妲己", "楊戩", "哪吒", "雷震子", "李靖", "土行孫", "申公豹", "聞仲", "黃飛虎", "太乙真人", "元始天尊", "通天教主"] },
+        { level: 5, name: "射鵰英雄傳", pairs: 14, chars: ["郭靖", "黃蓉", "洪七公", "歐陽鋒", "黃藥師", "段智興", "周伯通", "柯鎮惡", "丘處機", "梅超風", "陳玄風", "完顏洪烈", "楊康", "穆念慈", "華箏", "拖雷"] },
+        { level: 6, name: "神鵰俠侶", pairs: 16, chars: ["楊過", "小龍女", "郭襄", "郭芙", "李莫愁", "金輪法王", "公孫止", "裘千尺", "霍都", "達爾巴", "陸無雙", "程英", "耶律齊", "武敦儒", "武修文", "神雕", "獨孤求敗", "黃蓉"] },
+        { level: 7, name: "倚天屠龍記", pairs: 18, chars: ["張無忌", "趙敏", "周芷若", "小昭", "殷離", "張三丰", "宋遠橋", "俞蓮舟", "張翠山", "殷素素", "謝遜", "韋一笑", "殷天正", "黛綺絲", "滅絕師太", "楊逍", "范遙", "成崑", "宋青書", "玄冥二老"] },
+        { level: 8, name: "天龍八部", pairs: 20, chars: ["喬峰", "段譽", "虛竹", "王語嫣", "阿朱", "阿紫", "木婉清", "鍾靈", "慕容復", "鳩摩智", "丁春秋", "游坦之", "蕭遠山", "慕容博", "段正淳", "刀白鳳", "康敏", "無崖子", "天山童姥", "李秋水", "段延慶", "葉二娘"] },
+        { level: 9, name: "笑傲江湖", pairs: 24, chars: ["令狐沖", "任盈盈", "岳靈珊", "林平之", "岳不群", "寧中則", "東方不敗", "任我行", "向問天", "田伯光", "儀琳", "風清揚", "左冷禪", "莫大", "劉正風", "曲洋", "余滄海", "木高峰", "藍鳳凰", "平一指", "不戒和尚", "沖虛道長", "方證大師", "桃谷六仙", "林震南"] },
+        { level: 10, name: "慶餘年", pairs: 28, chars: ["范閒", "林婉兒", "慶帝", "陳萍萍", "五竹", "范建", "范思轍", "范若若", "海棠朵朵", "司理理", "戰豆豆", "苦荷", "四顧劍", "葉流雲", "葉輕眉", "燕小乙", "影子", "言冰雲", "言若海", "王啟年", "高達", "洪四庠", "侯公公", "郭保坤", "辛其物", "賀宗緯", "沈重", "肖恩", "莊墨韓", "太后", "長公主", "二皇子"] }
+    ];
+
+    const ageOptionsData = {
+        "男": [
+            { text: "少年的賈寶玉 (18歲以下)", seconds: 3, factor: 1.2 },
+            { text: "青春的郭靖 (19-30歲)", seconds: 5, factor: 1.4 },
+            { text: "壯年的喬峰 (31-50歲)", seconds: 7, factor: 1.6 },
+            { text: "資深的張三丰 (51-70歲)", seconds: 9, factor: 2.0 },
+            { text: "傳奇的姜子牙 (71歲以上)", seconds: 11, factor: 2.5 }
+        ],
+        "女": [
+            { text: "少年的林黛玉 (18歲以下)", seconds: 3, factor: 1.2 },
+            { text: "青春的黃蓉 (19-30歲)", seconds: 5, factor: 1.4 },
+            { text: "壯年的趙敏 (31-50歲)", seconds: 7, factor: 1.6 },
+            { text: "資深的滅絕師太 (51-70歲)", seconds: 9, factor: 2.0 },
+            { text: "傳奇的西王母 (71歲以上)", seconds: 11, factor: 2.5 }
+        ]
+    };
+
+    function updateAgeOptions() {
+        const gender = document.getElementById('player-gender').value;
+        const ageSelect = document.getElementById('player-age-group');
+        ageSelect.innerHTML = '';
+
+        let options = [];
+        if (gender === "其他 / 不透露") {
+            const maleOpts = ageOptionsData["男"];
+            const femaleOpts = ageOptionsData["女"];
+            for (let i = 0; i < 5; i++) {
+                const chosenSource = Math.random() < 0.5 ? maleOpts : femaleOpts;
+                options.push(chosenSource[i]);
+            }
+        } else {
+            options = ageOptionsData[gender] || ageOptionsData["男"];
+        }
+
+        options.forEach(opt => {
+            const el = document.createElement('option');
+            el.value = opt.text;
+            el.setAttribute('data-seconds', opt.seconds);
+            el.setAttribute('data-factor', opt.factor);
+            el.innerText = `${opt.text} (${opt.seconds}秒記憶)`;
+            ageSelect.appendChild(el);
+        });
+    }
+
+    function initLevelSelect() {
+        const levelSelect = document.getElementById('start-level-select');
+        levelSelect.innerHTML = '';
+        levelsData.forEach(lvl => {
+            const el = document.createElement('option');
+            el.value = lvl.level;
+            el.innerText = `第 ${lvl.level} 關：${lvl.name}`;
+            levelSelect.appendChild(el);
+        });
+    }
+
+    window.onload = function() {
+        updateAgeOptions();
+        initLevelSelect();
+    };
+
+    const ranks = [
+        { title: "十階 神人", desc: "已非世間所有，屬於天神境界。", maxFlips: 380, maxTime: 250 },
+        { title: "九階 大宗師", desc: "返璞歸真：天人合一，內力與自然共鳴，屬於武林神話與傳說級別的最高境界。", maxFlips: 430, maxTime: 330 },
+        { title: "八階 宗師", desc: "開宗立派：武功自成一派，具備深厚的武學宗卷底蘊，為威震一方的武林泰斗。", maxFlips: 480, maxTime: 420 },
+        { title: "七階 化境", desc: "登峰造極：無招勝有招，飛花摘葉皆可傷人，對武學的理解已超脫尋常範疇。", maxFlips: 530, maxTime: 520 },
+        { title: "六階 出神", desc: "出神入化：武功化為身體本能，不再死守固定套路，反應與速度超越常人。", maxFlips: 580, maxTime: 620 },
+        { title: "五階 爐火", desc: "爐火純青：技藝極度純熟，招式收放自如，具備在江湖上開館授徒的資格。", maxFlips: 650, maxTime: 720 },
+        { title: "四階 融會", desc: "融會貫通：內外兼修，招式與內力開始完美結合，能夠見招拆招。", maxFlips: 720, maxTime: 850 },
+        { title: "三階 登堂", desc: "登堂入室：招式熟練，能將所學靈活應用於實戰，屬於江湖中的尋常好手。", maxFlips: 800, maxTime: 1000 },
+        { title: "二階 初窺", desc: "初窺門徑：掌握基本招式與初步內功心法，剛踏入武道之門。", maxFlips: 950, maxTime: 1200 },
+        { title: "一階 築基", desc: "鍛體強身：扎實下盤與氣血，打好武學根基，尚無實戰內力。", maxFlips: Infinity, maxTime: Infinity }
+    ];
+
+    let currentLevelIdx = 0;
+    let totalFlips = 0;
+    let totalTime = 0;
+    let timerInterval = null;
+    let previewInterval = null;
+    let playerName = "江湖少俠";
+    let playerGender = "男";
+    let playerAgeGroup = "";
+    let previewSeconds = 3;
+    let ageFactor = 1.4;
+    
+    let firstCard = null;
+    let secondCard = null;
+    let lockBoard = false;
+    let matchedPairs = 0;
+
+    function shuffleArray(array) {
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex !== 0) {
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+        return array;
+    }
+
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function startGame() {
+        const nameInput = document.getElementById('player-name').value.trim();
+        playerName = nameInput !== "" ? nameInput : "江湖少俠";
+        
+        playerGender = document.getElementById('player-gender').value;
+        const ageSelect = document.getElementById('player-age-group');
+        playerAgeGroup = ageSelect.value;
+        previewSeconds = parseInt(ageSelect.options[ageSelect.selectedIndex].getAttribute('data-seconds')) || 3;
+        ageFactor = parseFloat(ageSelect.options[ageSelect.selectedIndex].getAttribute('data-factor')) || 1.4;
+
+        const startLevelSelect = document.getElementById('start-level-select');
+        currentLevelIdx = parseInt(startLevelSelect.value) || 0;
+
+        document.getElementById('player-info-display').innerText = `少俠: ${playerName} (${playerGender}) | 身分: ${playerAgeGroup}`;
+
+        switchScreen('game-screen');
+        
+        if (timerInterval) clearInterval(timerInterval);
+        totalTime = 0;
+        totalFlips = 0;
+
+        timerInterval = setInterval(() => {
+            totalTime++;
+            document.getElementById('time-display').innerText = `時間: ${totalTime}s`;
+        }, 1000);
+        
+        loadLevel(currentLevelIdx);
+    }
+
+    function loadLevel(idx) {
+        const levelConfig = levelsData[idx];
+        matchedPairs = 0;
+        firstCard = null;
+        secondCard = null;
+        lockBoard = true;
+
+        if (previewInterval) clearInterval(previewInterval);
+
+        document.getElementById('level-display').innerText = `關卡: ${levelConfig.level} / 10`;
+        document.getElementById('theme-display').innerText = `主題: ${levelConfig.name}`;
+        
+        const resultBox = document.getElementById('level-result-box');
+        resultBox.style.display = 'none';
+        resultBox.innerHTML = '';
+
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+
+        let shuffledChars = shuffleArray([...levelConfig.chars]);
+        let selectedChars = shuffledChars.slice(0, levelConfig.pairs);
+        let deck = [...selectedChars, ...selectedChars];
+        deck = shuffleArray(deck);
+
+        deck.forEach(char => {
+            const cardElement = document.createElement('div');
+            cardElement.classList.add('card', 'flipped');
+            cardElement.dataset.name = char;
+
+            const cardBack = document.createElement('div');
+            cardBack.classList.add('card-face', `bg-lv${levelConfig.level}`);
+
+            const cardFront = document.createElement('div');
+            cardFront.classList.add('card-face', 'card-front');
+            cardFront.innerText = char;
+
+            cardElement.appendChild(cardBack);
+            cardElement.appendChild(cardFront);
+
+            cardElement.addEventListener('click', flipCard);
+            board.appendChild(cardElement);
+        });
+
+        let timeLeft = previewSeconds;
+        const noticeEl = document.getElementById('preview-notice');
+        noticeEl.innerText = `👁️ 記憶時間：請仔細記住牌面位置...還有 ${timeLeft} 秒`;
+
+        previewInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft > 0) {
+                noticeEl.innerText = `👁️ 記憶時間：請仔細記住牌面位置...還有 ${timeLeft} 秒`;
+            } else {
+                clearInterval(previewInterval);
+                noticeEl.innerText = `⚔️ 記憶時間結束！請開始翻牌挑戰！`;
+                document.querySelectorAll('.card').forEach(card => {
+                    card.classList.remove('flipped');
+                });
+                lockBoard = false;
+            }
+        }, 1000);
+    }
+
+    function flipCard() {
+        if (lockBoard) return;
+        if (this === firstCard) return;
+        if (this.classList.contains('flipped')) return;
+
+        this.classList.add('flipped');
+        totalFlips++;
+        document.getElementById('flips-display').innerText = `翻牌次數: ${totalFlips}`;
+
+        if (!firstCard) {
+            firstCard = this;
+            return;
+        }
+
+        secondCard = this;
+        checkForMatch();
+    }
+
+    function checkForMatch() {
+        let isMatch = firstCard.dataset.name === secondCard.dataset.name;
+
+        if (isMatch) {
+            disableCards();
+            matchedPairs++;
+            if (matchedPairs === levelsData[currentLevelIdx].pairs) {
+                checkLevelPerformance();
+            }
+        } else {
+            unflipCards();
+        }
+    }
+
+    function disableCards() {
+        firstCard.removeEventListener('click', flipCard);
+        secondCard.removeEventListener('click', flipCard);
+        resetBoard();
+    }
+
+    function unflipCards() {
+        lockBoard = true;
+        setTimeout(() => {
+            if (firstCard) firstCard.classList.remove('flipped');
+            if (secondCard) secondCard.classList.remove('flipped');
+            resetBoard();
+        }, 1000);
+    }
+
+    function resetBoard() {
+        [firstCard, secondCard, lockBoard] = [null, null, false];
+    }
+
+    function checkLevelPerformance() {
+        const currentPairs = levelsData[currentLevelIdx].pairs;
+        const maxAllowedFlips = Math.round(currentPairs * 3.5 * ageFactor);
+
+        const resultBox = document.getElementById('level-result-box');
+        resultBox.style.display = 'block';
+
+        if (totalFlips <= maxAllowedFlips * 1.5 || currentLevelIdx === 0) {
+            if (currentLevelIdx < levelsData.length - 1) {
+                resultBox.className = "level-pass-box";
+                resultBox.innerHTML = `
+                    <h3>🌟 太棒了！本關記憶考驗通過！</h3>
+                    <p>${playerName} 少俠的表現符合 ${playerAgeGroup} 的標準！</p>
+                    <button onclick="nextLevel()">進入下一關</button>
+                `;
+            } else {
+                endGame();
+            }
+        } else {
+            resultBox.className = "level-fail-box";
+            let targetPrev = Math.max(0, currentLevelIdx - 1);
+            resultBox.innerHTML = `
+                <h3>💪 差一點點！為了強化記憶，建議重新鍛鍊</h3>
+                <p>${playerName} 少俠，讓我們回前一關（第 ${targetPrev} 關）再次熟悉牌面吧！</p>
+                <button onclick="retryPreviousLevel(${targetPrev})">返回前一關重練</button>
+            `;
+        }
+    }
+
+    function nextLevel() {
+        currentLevelIdx++;
+        if (currentLevelIdx < levelsData.length) {
+            loadLevel(currentLevelIdx);
+        } else {
+            endGame();
+        }
+    }
+
+    function retryPreviousLevel(targetIdx) {
+        currentLevelIdx = targetIdx;
+        loadLevel(currentLevelIdx);
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        if (previewInterval) clearInterval(previewInterval);
+        switchScreen('result-screen');
+        
+        document.getElementById('final-player-name').innerText = playerName;
+        document.getElementById('final-player-info').innerText = `性別: ${playerGender} / 身分: ${playerAgeGroup}`;
+        document.getElementById('final-time').innerText = totalTime;
+        document.getElementById('final-flips').innerText = totalFlips;
+
+        let finalRank = ranks[ranks.length - 1];
+        for (let i = 0; i < ranks.length; i++) {
+            if (totalFlips <= ranks[i].maxFlips && totalTime <= ranks[i].maxTime) {
+                finalRank = ranks[i];
+                break;
+            }
+        }
+
+        document.getElementById('rank-title').innerText = finalRank.title;
+        document.getElementById('rank-desc').innerText = finalRank.desc;
+
+        const certListEl = document.getElementById('certificates-list');
+        certListEl.innerHTML = '';
+        ranks.forEach((r, idx) => {
+            const isMatched = (r.title === finalRank.title);
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `cert-item ${isMatched ? 'matched' : ''}`;
+            
+            const maxFStr = r.maxFlips === Infinity ? "無限制" : `${r.maxFlips}次以內`;
+            const maxTStr = r.maxTime === Infinity ? "無限制" : `${r.maxTime}秒以內`;
+
+            itemDiv.innerHTML = `
+                <div class="cert-header">
+                    <span>${r.title} ${isMatched ? '👑 (玩家獲得)' : ''}</span>
+                    <span style="font-size: 0.9em; color: #aaa;">標準：次數 ${maxFStr} ｜ 時間 ${maxTStr}</span>
+                </div>
+                <div class="cert-desc">${r.desc}</div>
+            `;
+            certListEl.appendChild(itemDiv);
+        });
+    }
+</script>
+</body>
+</html>
